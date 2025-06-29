@@ -1,14 +1,5 @@
 from unstructured.partition.pdf import partition_pdf
-from unstructured.staging.base import elements_to_json
-import os
-import dotenv
 from unstructured.partition.utils.constants import OCR_AGENT_PADDLE
-from unstructured_inference.models.base import get_model
-from unstructured_inference.inference.layout import DocumentLayout
-
-model = get_model("yolox")
-
-dotenv.load_dotenv()
 
 file_path = "./documents"
 base_file_name = "layout-parser-paper"
