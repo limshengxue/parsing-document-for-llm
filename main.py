@@ -12,6 +12,7 @@ from langchain.schema.document import Document
 from pydantic import BaseModel
 from langchain_pinecone import PineconeVectorStore
 from pinecone import ServerlessSpec, Pinecone
+import json
 
 dotenv.load_dotenv()
 
@@ -57,6 +58,7 @@ def store_docs_into_vectorstore(docs):
                                                           embedding=OpenAIEmbeddings(
                                                               api_key=os.getenv("OPENAI_API_KEY")))
 
+
 def elements_to_langchain_docs_chunk_by_page(elements):
     prev_page = -1
     content = ""
@@ -67,6 +69,8 @@ def elements_to_langchain_docs_chunk_by_page(elements):
             docs.append(new_document)
             content = ""
 
+        if content:
+            content += " "
         content += processed_element.text
         prev_page = processed_element.page
 
@@ -88,7 +92,13 @@ def process_elements(elements):
             image_content = understand_image(element.metadata.image_base64)
             print(image_content)
             print(" -----------") 
-            text_content += image_content
+            text_content += f"""
+            <image_content>
+
+            {image_content}
+            
+            </image_content>
+            """
 
         processed_elements.append(
             ProcessedElement(
@@ -128,6 +138,42 @@ def understand_image(base64_image):
 
     return response.content
     
+def get_all_docs_from_index(index_name):
+    index_name = "my-docs"
+    pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+    index = pc.Index(index_name)
+
+    dimension = 1536
+    
+    all_docs = []
+    top_k = 10000  # Maximum vectors per query (Pinecone limit)
+    
+    # Create a dummy vector of zeros
+    dummy_vector = [0.0] * dimension
+    
+    # Query with dummy vector to get all results
+    response = index.query(
+        vector=dummy_vector,
+        top_k=top_k,
+        include_values=True,
+        include_metadata=True
+    )
+    
+    for match in response['matches']:
+        doc = {
+            'page': match.get('metadata', {})["page"],
+            'text' : match.get('metadata', {})["text"]
+        }
+        all_docs.append(doc)
+    
+    # sort by page number
+    all_docs = sorted(all_docs, key=lambda x: x['page'])
+        
+    # store in a json file
+    with open('all_docs.json', 'w') as f:
+        json.dump(all_docs, f)
 
 if __name__ == "__main__":
     main()
+    # for debugging
+    get_all_docs_from_index()
