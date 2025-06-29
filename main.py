@@ -14,27 +14,21 @@ file_path = "./documents"
 base_file_name = "layout-parser-paper"
 
 def main():
-    paddle_elements = partition_pdf(
+    elements = partition_pdf(
         filename=f"{file_path}/{base_file_name}.pdf",
         strategy="hi_res",
         extract_image_block_types=["Image"],
         extract_image_block_to_payload=True,
-        ocr_agent=OCR_AGENT_PADDLE,
+        chunking_strategy="basic",
         )
 
-    tesseract_elements = partition_pdf(
-        filename=f"{file_path}/{base_file_name}.pdf",
-        strategy="hi_res",
-        extract_image_block_types=["Image"],
-        extract_image_block_to_payload=True,
-        )
+    print("Number of elements:", len(elements))
 
-    # put in json for comparison
-    for paddle_element, tesseract_element in zip(paddle_elements, tesseract_elements):
-        if paddle_element.text != tesseract_element.text:
-            print(f"paddle: {paddle_element.text}")
-            print(f"tesseract: {tesseract_element.text}")
-            print("-------------")
+    for element in elements:
+        if element.metadata.image_base64 != None:
+            print("Page", element.metadata.page_number, "has image")
+
+    
 
 if __name__ == "__main__":
     main()
